@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>黙読スピード測定（キャリブレーション本番）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body{
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
+    margin: 24px;
+    line-height: 1.8;
+  }
+  #frame{max-width: 880px; margin: 0 auto;}
+  #box{
+    border:1px solid #ddd; border-radius:12px;
+    padding:16px; margin-top:12px;
+  }
+  button{
+    font-size:16px; padding:10px 16px;
+    border-radius:8px; cursor:pointer;
+  }
+  #text{
+    display:none; white-space:pre-wrap;
+  }
+  .row{margin:10px 0;}
+  .hint{color:#555; font-size:0.95rem;}
+  #info{font-size:0.9rem; color:#555; margin-top:8px;}
+</style>
+</head>
+<body>
+<div id="frame">
+  <h1>黙読スピード測定</h1>
+  <p class="hint">
+    ・このページは <b>本番用キャリブレーション</b> です。<br>
+    ・<b>スタートを押すまで本文は表示されません</b>。<br>
+    ・読み返し禁止、黙読のみで「普段どおりの速さ」で読んでください。
+  </p>
+
+  <div id="box">
+    <div class="row">
+      <button id="start">スタート（本文を表示）</button>
+    </div>
+    <div id="text" class="row" aria-live="polite"></div>
+    <div class="row">
+      <button id="done" style="display:none">読み終わった</button>
+    </div>
+    <div id="next" class="row" style="display:none">
+      <p class="hint">黙読スピードの測定が完了しました。このブラウザに記録されています。</p>
+      <button id="toExp">実験ページへ進む</button>
+      <div id="info"></div>
+    </div>
+  </div>
+
+  <h3>本文（研究者用メモ）</h3>
+  <p class="hint">
+    下の本文テキストは研究者が編集します。参加者には <b>黙読時間や速度は表示されません</b>。<br>
+    ※ 文字数ベース（空白・改行を除く）で黙読速度を計算します。
+  </p>
+</div>
+
+<script>
+// ===================== 研究者設定 =====================
+// 実験で使うキャリブ用本文
+const PASSAGE = `都市の中で緑を感じさせる代表的な存在が街路樹である。街路樹は美観を整えるだけでなく、日射を遮って地表の温度上昇を防ぎ、ヒートアイランド現象の緩和にも寄与している。夏季には木陰を提供し、歩行者の快適性を高める効果がある。一方で、落ち葉の清掃や根の成長による舗装のひび割れなど、維持管理の課題も多い。樹種の選定を誤ると成長速度や樹形が街並みに合わず、かえって景観を損ねる場合もある。近年は地域の気候や土壌に適した在来種を用い、植樹後も定期的に剪定・観察を行う取り組みが進んでいる。街路樹は都市と自然の境界をやわらげる存在として、持続可能な都市計画に欠かせない要素である。`;
+
+// 「等速音声」の基準文字/秒（例：300文字を60秒 → 5.0）
+const I_BASE = 5.0;
+
+// 黙読より速い条件を作るときの倍率（必要なら実験側で使用）
+const OVER_K = 1.2;
+
+// この後に遷移する実験プレイヤーのファイル名
+const EXPERIMENT_PAGE = 'experiment_player_v3c.html';
+// =======================================================
+</script>
+
+<script>
+let startTime = null;
+
+const startBtn = document.getElementById('start');
+const doneBtn  = document.getElementById('done');
+const textDiv  = document.getElementById('text');
+const nextDiv  = document.getElementById('next');
+const toExpBtn = document.getElementById('toExp');
+const infoDiv  = document.getElementById('info');
+
+// 本文を参加者に見せるのは start を押した後
+startBtn.onclick = () => {
+  textDiv.textContent = PASSAGE.trim();
+  textDiv.style.display = 'block';
+  startTime = Date.now();               // ミリ秒で開始時刻を保存
+  doneBtn.style.display = 'inline-block';
+  startBtn.disabled = true;
+};
+
+// 読み終わりボタンが押されたタイミングで黙読速度を計算
+doneBtn.onclick = () => {
+  if (!startTime) return;
+
+  // 経過時間（秒）
+  const t_read = (Date.now() - startTime) / 1000;
+
+  // 「カウント対象の文字数」：空白・改行を除く
+  const N = PASSAGE.replace(/\s/g, "").length;
+
+  // 黙読速度：文字/秒
+  const I_read = N / t_read;
+
+  // localStorage に保存（実験ページ側で利用）
+  try {
+    localStorage.setItem('exp_Nchars', String(N));                // キャリブ本文の文字数
+    localStorage.setItem('exp_tread',  t_read.toFixed(3));        // 黙読時間[s]
+    localStorage.setItem('exp_Ibase',  I_BASE.toFixed(3));        // 等速の基準[文字/秒]
+    localStorage.setItem('exp_Iread',  I_read.toFixed(4));        // 黙読速度[文字/秒]
+    localStorage.setItem('exp_OverK',  OVER_K.toFixed(3));        // 黙読超過倍率（必要なら）
+    localStorage.setItem('exp_text',   PASSAGE.trim());           // 本文そのもの（ログ用）
+  } catch (e) {
+    console.error('localStorage 保存に失敗しました:', e);
+  }
+
+  // 参加者には具体的な数値は見せない想定だけど、
+  // 研究者確認用に小さく表示（不要なら infoDiv 関連を消してOK）
+  infoDiv.innerHTML =
+    `<p class="hint">
+      （研究者向けメモ）<br>
+      N = ${N} 文字,  t = ${t_read.toFixed(2)} 秒,  黙読速度 ≒ ${I_read.toFixed(2)} 文字/秒
+    </p>`;
+
+  // UI遷移
+  doneBtn.style.display = 'none';
+  nextDiv.style.display = 'block';
+};
+
+// 実験ページへ遷移
+toExpBtn.onclick = () => {
+  window.location.href = EXPERIMENT_PAGE;
+};
+</script>
+</body>
+</html>
