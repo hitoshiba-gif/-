@@ -2,139 +2,116 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>黙読スピード測定（キャリブレーション本番）</title>
+<title>実験へのご協力のお願い</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  body{
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", sans-serif;
-    margin: 24px;
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
     line-height: 1.8;
+    color: #333;
+    background: #f9f9f9;
+    margin: 0;
+    padding: 20px;
   }
-  #frame{max-width: 880px; margin: 0 auto;}
-  #box{
-    border:1px solid #ddd; border-radius:12px;
-    padding:16px; margin-top:12px;
+  .container {
+    max-width: 800px;
+    margin: 40px auto;
+    background: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   }
-  button{
-    font-size:16px; padding:10px 16px;
-    border-radius:8px; cursor:pointer;
+  h1 {
+    text-align: center;
+    color: #1565c0;
+    margin-bottom: 32px;
   }
-  #text{
-    display:none; white-space:pre-wrap;
+  h2 {
+    border-left: 5px solid #1565c0;
+    padding-left: 12px;
+    margin-top: 32px;
+    font-size: 1.4rem;
   }
-  .row{margin:10px 0;}
-  .hint{color:#555; font-size:0.95rem;}
-  #info{font-size:0.9rem; color:#555; margin-top:8px;}
+  p { margin-bottom: 16px; }
+  .box {
+    background: #e3f2fd;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 20px 0;
+  }
+  .warning {
+    color: #d32f2f;
+    font-weight: bold;
+  }
+  li { margin-bottom: 8px; }
+  
+  /* ボタン */
+  .btn-area { text-align: center; margin-top: 40px; }
+  button {
+    font-size: 20px;
+    padding: 16px 48px;
+    background: #1565c0;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(21, 101, 192, 0.3);
+    transition: transform 0.2s;
+  }
+  button:hover {
+    background: #0d47a1;
+    transform: translateY(-2px);
+  }
 </style>
 </head>
 <body>
-<div id="frame">
-  <h1>黙読スピード測定</h1>
-  <p class="hint">
-    ・このページは <b>本番用キャリブレーション</b> です。<br>
-    ・<b>スタートを押すまで本文は表示されません</b>。<br>
-    ・読み返し禁止、黙読のみで「普段どおりの速さ」で読んでください。
-  </p>
 
-  <div id="box">
-    <div class="row">
-      <button id="start">スタート（本文を表示）</button>
-    </div>
-    <div id="text" class="row" aria-live="polite"></div>
-    <div class="row">
-      <button id="done" style="display:none">読み終わった</button>
-    </div>
-    <div id="next" class="row" style="display:none">
-      <p class="hint">黙読スピードの測定が完了しました。このブラウザに記録されています。</p>
-      <button id="toExp">実験ページへ進む</button>
-      <div id="info"></div>
-    </div>
+<div class="container">
+  <h1>実験へのご協力のお願い</h1>
+  <p>この度は、本実験にご協力いただきありがとうございます。<br>
+  本実験は、文章を読む際の「音声」と「理解度」の関係を調査するものです。</p>
+
+  <h2>1. 全体の流れ</h2>
+  <ol>
+    <li><b>黙読スピードの測定</b>：あなたの普段の読む速さを測定します。</li>
+    <li><b>本番実験（20問）</b>：文章を読み（または聴き）、内容に関する質問に答えます。</li>
+  </ol>
+  <p>所要時間は<b>約30〜40分</b>です。</p>
+
+  <div class="box">
+    <h3>⚠️ 重要な注意点</h3>
+    <ul>
+      <li>必ず<b>パソコン（PC）</b>で<b>全画面表示</b>で実施してください。スマホでは正しく動作しません。</li>
+      <li>音声を使用します。<b>イヤホンまたはヘッドホン</b>を着用し、周囲が静かな環境で実施してください。</li>
+      <li>ブラウザの「戻る」ボタンは使用しないでください。</li>
+    </ul>
   </div>
 
-  <h3>本文（研究者用メモ）</h3>
-  <p class="hint">
-    下の本文テキストは研究者が編集します。参加者には <b>黙読時間や速度は表示されません</b>。<br>
-    ※ 文字数ベース（空白・改行を除く）で黙読速度を計算します。
-  </p>
+  <h2>2. 黙読スピード測定について</h2>
+  <p>次のページで、あなたの基準となる「読む速さ」を測定します。</p>
+  <ul>
+    <li><span class="warning">急いで読む必要はありません。</span></li>
+    <li>内容を理解できる、<b>「普段通りの自然なペース」</b>で読んでください。</li>
+    <li>この測定結果をもとに、本番の音声速度が調整されます。無理に速く読むと、本番の音声が聞き取れなくなります。</li>
+  </ul>
+
+  <h2>3. 本番の提示形式について</h2>
+  <p>本番では、以下のようないくつかのパターンで文章が提示されます。</p>
+  <ul>
+    <li><b>黙読のみ：</b>文章だけが表示されます。</li>
+    <li><b>音声＋文章：</b>文章の表示と同時に音声が流れます。</li>
+    <li><b>文章 → 音声：</b>まず文章を読み、その後に音声のみが流れます。</li>
+  </ul>
+  <p>※ 音声が流れる条件では、<b>開始時に「3, 2, 1」というカウントダウン</b>が入ります。カウントに合わせて耳を澄ませてください。</p>
+
+  <h2>4. 開始前の準備</h2>
+  <p>準備ができたら、下のボタンを押して「黙読スピード測定」へ進んでください。</p>
+  
+  <div class="btn-area">
+    <button onclick="location.href='calibration.html'">測定を開始する</button>
+  </div>
+
 </div>
 
-<script>
-// ===================== 研究者設定 =====================
-// 実験で使うキャリブ用本文
-const PASSAGE = `都市の中で緑を感じさせる代表的な存在が街路樹である。街路樹は美観を整えるだけでなく、日射を遮って地表の温度上昇を防ぎ、ヒートアイランド現象の緩和にも寄与している。夏季には木陰を提供し、歩行者の快適性を高める効果がある。一方で、落ち葉の清掃や根の成長による舗装のひび割れなど、維持管理の課題も多い。樹種の選定を誤ると成長速度や樹形が街並みに合わず、かえって景観を損ねる場合もある。近年は地域の気候や土壌に適した在来種を用い、植樹後も定期的に剪定・観察を行う取り組みが進んでいる。街路樹は都市と自然の境界をやわらげる存在として、持続可能な都市計画に欠かせない要素である。`;
-
-// 「等速音声」の基準文字/秒（例：300文字を60秒 → 5.0）
-const I_BASE = 5.0;
-
-// 黙読より速い条件を作るときの倍率（必要なら実験側で使用）
-const OVER_K = 1.2;
-
-// この後に遷移する実験プレイヤーのファイル名
-const EXPERIMENT_PAGE = 'experiment_player_v3c.html';
-// =======================================================
-</script>
-
-<script>
-let startTime = null;
-
-const startBtn = document.getElementById('start');
-const doneBtn  = document.getElementById('done');
-const textDiv  = document.getElementById('text');
-const nextDiv  = document.getElementById('next');
-const toExpBtn = document.getElementById('toExp');
-const infoDiv  = document.getElementById('info');
-
-// 本文を参加者に見せるのは start を押した後
-startBtn.onclick = () => {
-  textDiv.textContent = PASSAGE.trim();
-  textDiv.style.display = 'block';
-  startTime = Date.now();               // ミリ秒で開始時刻を保存
-  doneBtn.style.display = 'inline-block';
-  startBtn.disabled = true;
-};
-
-// 読み終わりボタンが押されたタイミングで黙読速度を計算
-doneBtn.onclick = () => {
-  if (!startTime) return;
-
-  // 経過時間（秒）
-  const t_read = (Date.now() - startTime) / 1000;
-
-  // 「カウント対象の文字数」：空白・改行を除く
-  const N = PASSAGE.replace(/\s/g, "").length;
-
-  // 黙読速度：文字/秒
-  const I_read = N / t_read;
-
-  // localStorage に保存（実験ページ側で利用）
-  try {
-    localStorage.setItem('exp_Nchars', String(N));                // キャリブ本文の文字数
-    localStorage.setItem('exp_tread',  t_read.toFixed(3));        // 黙読時間[s]
-    localStorage.setItem('exp_Ibase',  I_BASE.toFixed(3));        // 等速の基準[文字/秒]
-    localStorage.setItem('exp_Iread',  I_read.toFixed(4));        // 黙読速度[文字/秒]
-    localStorage.setItem('exp_OverK',  OVER_K.toFixed(3));        // 黙読超過倍率（必要なら）
-    localStorage.setItem('exp_text',   PASSAGE.trim());           // 本文そのもの（ログ用）
-  } catch (e) {
-    console.error('localStorage 保存に失敗しました:', e);
-  }
-
-  // 参加者には具体的な数値は見せない想定だけど、
-  // 研究者確認用に小さく表示（不要なら infoDiv 関連を消してOK）
-  infoDiv.innerHTML =
-    `<p class="hint">
-      （研究者向けメモ）<br>
-      N = ${N} 文字,  t = ${t_read.toFixed(2)} 秒,  黙読速度 ≒ ${I_read.toFixed(2)} 文字/秒
-    </p>`;
-
-  // UI遷移
-  doneBtn.style.display = 'none';
-  nextDiv.style.display = 'block';
-};
-
-// 実験ページへ遷移
-toExpBtn.onclick = () => {
-  window.location.href = EXPERIMENT_PAGE;
-};
-</script>
 </body>
 </html>
