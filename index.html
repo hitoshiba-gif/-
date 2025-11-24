@@ -44,6 +44,33 @@
     font-weight: bold;
   }
   li { margin-bottom: 8px; }
+  /* チェックリストエリア */
+  .check-area {
+    background: #fff3e0;
+    border: 2px solid #ffe0b2;
+    padding: 20px 30px;
+    border-radius: 8px;
+    margin-top: 30px;
+  }
+  .check-area h3 {
+    margin-top: 0;
+    color: #e65100;
+    border-bottom: 1px solid #ffcc80;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  .check-item {
+    display: block;
+    margin-bottom: 12px;
+    cursor: pointer;
+    font-size: 1.05rem;
+    font-weight: bold;
+  }
+  .check-item input {
+    transform: scale(1.5);
+    margin-right: 12px;
+    cursor: pointer;
+  }
   /* 倫理規定ボックス（新規追加） */
   .ethics-box {
     background: #f5f5f5;
@@ -81,6 +108,13 @@
     background: #0d47a1;
     transform: translateY(-2px);
   }
+  button:disabled {
+    background: #ccc;
+    color: #666;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
 </style>
 </head>
 <body>
@@ -114,15 +148,7 @@
     <li>この測定結果をもとに、本番の音声速度が調整されます。無理に速く読むと、本番の音声が聞き取れなくなります。</li>
   </ul>
 
-  <h2>3. 実験の構成について（重要）</h2>
-  <p>本番の20問は、<b>「5問ずつのセット」を4回繰り返す</b>形で進行します。</p>
-  <ul>
-    <li>各セットの<b>最初の1問は、必ず「黙読のみ」</b>です。</li>
-    <li>これを、そのセットにおける<b>「ご自身のペース（基準）」</b>として意識して読んでください。</li>
-    <li>続く4問は、様々な音声条件で提示されます。最初の黙読の感覚と比較してどうだったか、質問に答えてください。</li>
-  </ul>
-
-  <h2>4. 本番の提示形式について</h2>
+  <h2>3. 本番の提示形式について</h2>
   <p>本番の20問は、<b>「5問ずつのセット」を4回繰り返す</b>形で進行します。</p>
   <ul>
     <li>各セットの<b>最初の1問は、必ず「黙読のみ」</b>です。</li>
@@ -131,23 +157,61 @@
   </ul>
   <p>※ 音声が流れる条件では、開始時に「3, 2, 1」というカウントダウンが入ります。</p>
 
-  <h2>5. 開始前の準備</h2>
-  <p>準備ができたら、下のボタンを押して「黙読スピード測定」へ進んでください。</p>
-
-  
-  <div class="btn-area">
-    <button onclick="location.href='calibration.html'">測定を開始する</button>
+  <div class="check-area">
+    <h3>✅ 実験環境の確認（必須）</h3>
+    <p style="font-size:0.9rem; margin-bottom:15px;">正しいデータを取得するため、以下の環境で実施してください。すべてにチェックを入れると開始ボタンが押せるようになります。</p>
+    
+    <label class="check-item">
+      <input type="checkbox" class="env-check">
+      スマートフォンではなく、<b>パソコン（PC）</b>を使用し、<b>フルスクリーン</b>で表示している。
+    </label>
+    <label class="check-item">
+      <input type="checkbox" class="env-check">
+      <b>スピーカーをオンにしている</b>あるいは<b>イヤホンまたはヘッドホン</b>を着用している。
+    </label>
+    <label class="check-item">
+      <input type="checkbox" class="env-check">
+      <b>静かな環境</b>にいて、実験に集中できる状態である。
+    </label>
   </div>
-
-  <div class="ethics-box">
+<div class="ethics-box">
     <h3>データの取り扱いと同意について</h3>
     <ul>
       <li>本実験で得られたデータは、<b>卒業研究の分析目的のみ</b>に使用され、それ以外の目的には使用されません。</li>
       <li>データは統計的に処理され、<b>個人が特定される形で公表されることはありません</b>。</li>
       <li>実験への参加は任意であり、体調不良等により途中で中断することも可能です（ブラウザを閉じて終了してください）。</li>
     </ul>
-    <p style="margin-bottom:0; text-align:right;">上記内容に同意の上、開始してください。</p>
   </div>
+
+  <div class="btn-area">
+    <button id="startBtn" onclick="location.href='calibration.html'" disabled>環境を確認して測定を開始する</button>
+  </div>
+
+</div>
+
+<script>
+  // すべてのチェックボックスの状態を監視する
+  const checkboxes = document.querySelectorAll('.env-check');
+  const startBtn = document.getElementById('startBtn');
+
+  function updateBtnState() {
+    // チェックされていないボックスがあるか探す
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    startBtn.disabled = !allChecked;
+    
+    if(allChecked) {
+        startBtn.textContent = "測定を開始する";
+    } else {
+        startBtn.textContent = "環境を確認して測定を開始する";
+    }
+  }
+
+  // 各チェックボックスにイベントリスナーを追加
+  checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateBtnState);
+  });
+</script>
+  
 
 </div>
 
