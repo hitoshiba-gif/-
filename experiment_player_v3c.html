@@ -66,21 +66,7 @@
   }
 
   /* プログレスバー */
-  #progressContainer {
-    display: none;
-    width: 100%;
-    height: 6px;
-    background-color: #eceff1;
-    border-radius: 3px;
-    margin-top: 12px;
-    overflow: hidden;
-  }
-  #progressBar {
-    width: 100%;
-    height: 100%;
-    background-color: #29b6f6; /* 明るい青 */
-    transform-origin: left;
-  }
+  
 
   /* 入力エリア */
   #idInputArea {
@@ -121,10 +107,12 @@
     padding: 40px;
     min-height: 300px;
     display: flex;
+    flex-direction: column; /* ボタン配置用に変更 */
     align-items: center;
     justify-content: center;
     margin-bottom: 32px;
     transition: border-color 0.3s;
+    position: relative;
   }
   #passageContainer:hover { border-color: #bdbdbd; }
 
@@ -167,6 +155,24 @@
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+  }
+
+  /* 読み終わったボタン（新規追加） */
+  #finishReadBtn {
+    display: none; /* デフォルト非表示 */
+    margin-top: 40px;
+    font-size: 18px;
+    padding: 12px 40px;
+    border-radius: 50px;
+    background: #ff9800; /* オレンジ */
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+  }
+  #finishReadBtn:hover {
+    background: #f57c00;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
   }
 
   /* その他のボタン */
@@ -229,7 +235,7 @@
     color: #2e7d32;
   }
   #doneBox h2 { margin-top: 0; font-size: 28px; }
-  
+   
   #aud { display: none; }
 </style>
 </head>
@@ -244,15 +250,16 @@
     <button id="submitIdBtn" type="button">実験を開始する</button>
     <p id="idError" style="color: #d32f2f; display: none; margin-top: 16px; font-weight:bold;">有効なIDを入力してください (1〜15)。</p>
   </div>
-  
+   
   <div id="noticeArea" style="display:none;">
     <div class="notice-bubble">
       <h3>📖 実験の手順</h3>
       <p>
-        1. 実験は<b>4つのブロック</b>に分かれています（合計20問）。<br>
+        1. 実験は<b>3つのブロック</b>に分かれています（合計15問）。<br>
         2. 各ブロックの<b>最初の1問は「黙読のみ」</b>です。これをそのブロックの<b>基準</b>としてください。<br>
         3. 続く4問は、様々な音声条件で提示されます。<br>
-        4. 「この文章を開始」を押してスタートし、表示後は質問に回答してください。
+        4. 「この文章を開始」を押してスタートし、表示後は質問に回答してください。<br>
+        5. 黙読中は<b>「読み終わった」ボタン</b>を押すとすぐに次へ進めます。
       </p>
     </div>
   </div>
@@ -265,11 +272,11 @@
       </div>
       <div id="status">準備完了</div>
       <audio id="aud" playsinline preload="auto"></audio>
-      <div id="progressContainer"><div id="progressBar"></div></div>
     </div>
 
     <div id="passageContainer">
       <div id="passage">ここに本文が表示されます。</div>
+      <button id="finishReadBtn" type="button">読み終わった（次へ）</button>
     </div>
 
     <div id="startArea">
@@ -300,8 +307,8 @@
 /* =========================================================
    0. 設定・定数・グローバル変数
    ========================================================= */
-const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwWVhDvO1lxf-yH3aVeyzxrzNUEgi6RYWdAwGfH5NK0lglyEQpLk48aGw5EQkiebG46OA/exec";
-const TOTAL_TRIALS = 20;
+const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz9w2Y5LZ3c85mnPO68F30N2m0O3TtJJJsdV1va_8d_KiCGk_qo0AlyHqYrNt0ELRKUOA/exec";
+const TOTAL_TRIALS = 15;
 
 // キャリブレーション値
 const Ibase = parseFloat(localStorage.getItem("exp_Ibase") || "5.0");
@@ -315,6 +322,7 @@ const statusBox = document.getElementById("status");
 const secLabel = document.getElementById("secLabel");
 const trialLabel = document.getElementById("trialLabel");
 const bigStartBtn = document.getElementById("bigStartBtn");
+const finishReadBtn = document.getElementById("finishReadBtn"); // 追加
 const quizWrap = document.getElementById("quiz");
 const quizForm = document.getElementById("quizForm");
 const quizTitle = document.getElementById("quizTitle");
@@ -352,7 +360,6 @@ function shuffle(arr) {
   return a;
 }
 
-function clearTimer(){ if(activeTimer !== null){ clearTimeout(activeTimer); activeTimer = null; } }
 
 function estimateReadingTimeSec(text){
   const len = currentPassage ? currentPassage.n_chars_total : text.replace(/\s/g, "").length;
@@ -372,26 +379,9 @@ function prepareAudio(src, playbackRate){
   aud.onended = null;
 }
 
-function startProgressBar(durationSec) {
-  const container = document.getElementById('progressContainer');
-  const bar = document.getElementById('progressBar');
-  if(container && bar) {
-      container.style.display = 'block';
-      bar.style.transition = 'none';
-      bar.style.width = '100%';
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          bar.style.transition = `width ${durationSec}s linear`;
-          bar.style.width = '0%';
-        });
-      });
-  }
-}
 
-function hideProgressBar() {
-  const container = document.getElementById('progressContainer');
-  if(container) container.style.display = 'none';
-}
+
+
 
 /* =========================================================
    2. データ通信関数
@@ -409,7 +399,7 @@ function sendDataToSheet(rowData) {
 }
 
 /* =========================================================
-   3. 実験データ定義
+   3. 実験データ定義 (SECTIONS, BASE_QUESTIONS, PASSAGES)
    ========================================================= */
 const SECTIONS = [
   { id: "S1", label: "黙読のみ", mode: "silent" },
@@ -426,29 +416,29 @@ const BASE_QUESTIONS = [
     options: ["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"] 
   },
   {
-    key: "easy_understand", type: "mc", // Q1
-    prompt: "Q1. この文章の内容は理解しやすかった。",
-    options: ["全くそう思わない","あまりそう思わない","どちらとも言えない","ややそう思う","とてもそう思う"]
+    key: "difficulty", type: "mc", // Q1
+    prompt: "Q1. この文章自体の難易度はどう感じましたか。",
+    options: ["とても簡単","やや簡単","普通","やや難しい","とても難しい"]
   },
   {
-    key: "easy_read_format", type: "mc", // Q2
-    prompt: "Q2. 黙読条件と比べて、今回の提示形式は内容を読み取りやすかった。",
-    options: ["全くそう思わない","あまりそう思わない","どちらとも言えない","ややそう思う","とてもそう思う"]
+    key: "comprehension_vs_silent", type: "mc", // Q2
+    prompt: "Q2. 【黙読と比較して】内容が頭に入りやすかった。",
+    options: ["黙読の方が入りやすかった","変わらない","今回の方が入りやすかった"]
   },
   {
-    key: "tempo_match", type: "mc", // Q3
-    prompt: "Q3. 黙読条件と比べて、音声の速さはちょうどよく感じた。",
-    options: ["全くそう思わない","あまりそう思わない","どちらとも言えない","ややそう思う","とてもそう思う"]
+    key: "focus_vs_silent", type: "mc", // Q3
+    prompt: "Q3. 【黙読と比較して】文章の内容に深く集中できた。",
+    options: ["黙読の方が集中できた","変わらない","今回の方が集中できた"]
   },
   {
-    key: "wait_hurry", type: "mc", // Q4
-    prompt: "Q4. 黙読条件と比べて、音声により待たされている（または急かされている）感じがした。",
-    options: ["全く感じない","あまり感じない","どちらとも言えない","ややそう感じる","強く感じる"]
+    key: "stress_vs_silent", type: "mc", // Q4
+    prompt: "Q4. 【黙読と比較して】疲れやストレスを感じた。",
+    options: ["黙読より疲れた","変わらない","黙読より楽だった"]
   },
   {
-    key: "stress", type: "mc", // Q5
-    prompt: "Q5. 黙読条件と比べて、この条件でのストレスや疲労は大きかった。",
-    options: ["全くそう思わない","あまりそう思わない","どちらとも言えない","ややそう思う","とてもそう思う"]
+    key: "stress_detail", type: "text", // Q5: 自由記述（タイプ: text）
+    prompt: "Q5. Q4でその選択肢を選んだ理由を、どんな些細なことでもいいので記述してください。",
+    placeholder: "例：音が速すぎた、待機時間が長くてイライラした、自分のペースと合わなかった、など"
   }
 ];
 
@@ -468,11 +458,6 @@ const PASSAGES = [
   { id: "P13", text: `ヨーロッパにおける時間の問題には、常にキリスト教的な意識が結びついているといえるわけですが、やはり私自身の考えでは、時間というものは、ある1番時間というものを通じて、ある一種の終末的なもの、エスカトロジックなものだと思うのです。つまりわれわれは時間というものを通じて、ある一つの目的に向かって近づいていくという考え方、これは私のものの考え方の根本にもあると思うのです。その目的が直接に宗教的なものであっても、あるいはそうでない。もっとヒューマンなものであっても、時間というものを通ってわれわれはある一つの目標に向かって進んでいるという考え、これはキリスト数の影響かもしれませんけれども、それを私はどうしても否定することができない。ハイデッガーみたいに、時間を存在の根本規定として、存在そのものにまで徹底的に入れてしまえば、まだ少しほかの考え方もできるかもしれませんが、私のばあい、人間は時間の中に生きている、人間を通って時間が展開する、という考え方はどうしても強いのです。時間というものは人間の存在そのものとまったく合一してしまうのでなくて、むしろ人間の存在そのものは時間の中に制約されて、変な言い方ですが、時間とはある程度区別されて存在しているのではないかという気がします。多少キリスト教的ですけれども、それがやはり時間の実相ではないかという気がします。`, audio: `audio/p13.mp3`, n_chars_info: 579, n_chars_total: 579, quiz: { prompt: "要旨として最も相応しいものを選べ", options: ["1：ヨーロッパにおける時間の問題には、常にキリスト教的な意識が結びついている。", "2：人間は、時間というものを通じて、ある一つの目的に向かって近づいていく。", "3：ハイデッガーは、時間を存在の根本規定として，存在そのものにまで徹底的に入れてしまう。", "4：時間というものは、人間の存在そのものとまったく合一してしまう。", "5：人間の存在そのものは、時間の中に制約されて存在している。"], answer: "2：人間は、時間というものを通じて、ある一つの目的に向かって近づいていく。" } },
   { id: "P14", text: `日ごろから練習やトレーニングを欠かさない。日ごろの努力の積み重ねがあって初めて、本番で結果を出すことができます。本番ではきちんとやるべきことをやる。緊張したり不安になったりして、やるべきことができなければ、いくら実力があっても宝の持ち腐れに終わります。本番でも練習やリハーサルと同じような状態に自分を持っていき、なおかつやるべきことをすることで、結果がついてきます。\nメジャーリーグのイチロー選手は、結果が出ているときであれ、反対に結果が思わしくないときであれ、いつも決まった時間に球場に入り、決まった練習メニューをこなしています。調子がいいときは軽めに練習して、調子がよくないときはたくさん練習することもありません。\nイチロー選手は、その決められた練習メニューをこなすから結果を出せると考えているのでしょう。\nやるべきことをきちんとできるようにするためには、本番でも無意識にできるようになっていなければなりません。\n何が起こるか分からない本番では、想定外のことが起こり得ます。このとき状況にうまく対応できないと、やるべきことができなくなる恐れがあります。\nやるべきことをきちんとするためには、体に覚えさせるしかありません。それは徹底した練習やリハーサルで身につくのです。練習やトレーニングは、本番でやるべきことを無意識に行うためにするものです。\n練習やトレーニングに本番のつもりで取り組むと、脳に本番で結果を出す回路ができます。本番では、その回路が正しくつながるようになります。\n練習やトレーニングは、「転ばぬ先の杖」でもあります。`, audio: `audio/p14.mp3`, n_chars_info: 759, n_chars_total: 759, quiz: { prompt: "文の主旨として、最も妥当なのはどれか", options: ["1：日ごろの努力の積み重ねがあって初めて、本番で結果を出すことができるのであり、日ごろから練習やトレーニングは欠かしてはならない。", "2：緊張したり不安になったりして、やるべきことができなければ、いくら実力があっても宝の持ち腐れに終わる。", "3： メジャーリーグのイチロー選手は、決められた練習メニューをこなすから結果を出せると考えている。", "4：やるべきことをきちんとできるようにするためには、本番でも無意識にできるようになっていなければならない。", "5：練習やトレーニングに本番のつもりで取り組むと、脳に本番で結果を出す回路ができ、本番では、その回路が正しくつながるようになる。"], answer: "1：日ごろの努力の積み重ねがあって初めて、本番で結果を出すことができるのであり、日ごろから練習やトレーニングは欠かしてはならない。" } },
   { id: "P15", text: `自意識は、人を規範的にし、また、自己批判を強めることによって、更なる努力を促します。しかし、自意識がいつでもこうした建設的な働きをするわけではありません。自己否定的な気持ちが強すぎると。強い劣等感や引け目を感じ、むしろ意欲をなくしてしまうこともあります。大人から見れば、些細なことでくよくよしたり、小さな問題でひどく落ち込んだりする子がいます。容貌、容姿が人と少し違うといって悩みます。勉強ができない。スポーツが苦手といって劣等感を持ちます。\n私たちには、もともと、人と自分を比較するという習性があります。専門家はこれを「社会的比較」と呼んでいます。自分の能力や魅力。価値などを知りたいと思うとき、私たちは周囲にいる人たちと自分を比較します。ある子どもは、あるとき、友達と競争すると、たいてい自分が勝つことに気づいて、「自分は走るのが得意なんだ」という認識を持ちます。初対面の人と友達が平気で話をしている様子を見て、「自分はこうはできないな」と一種の自己認識を形成します。走力にしても社交性にしても絶対的基準があるわけではありません。人と比較して、自分の特徴がわかります。\nいろいろな国で私たちは社会的比較をしています。その結果、人よりも劣っている点だけでなく優れている点も見つかるはずですが、既に述べたように、私たちは、劣っている点の方に意識が向かう傾向があります。優れた点を「よかった」と素直に喜ぶことができれば、劣っている点があったとしても、精神的に安定しますが、思春期にいる人たちは、劣っている点ばかりがひどく重要なことのように思います。良い点を伸ばしていこうと前向きな気持ちになれればいいのですが、時には、劣等感の方に負けて、行動が委縮してしまうこともあります。`, audio: `audio/p15.mp3`, n_chars_info: 739, n_chars_total: 739, quiz: { prompt: "次の文の主旨として、最も妥当なのはどれか。", options: ["1：自意識は、人を規範的にし、また。自己批判を強めることによって、更なる努力を促すが、いつでもこうした建設的なはたらきをするわけではない。", "2：容貌、容姿が人と少し違うなどといった。大人から見れば、些細なことでくよくよしたり、小さな問題でひどく落ち込んだりする子がいる。", "3：私たちには、もともと。人と自分を比較するという習性があり、自分の能力や魅力。価値などを知りたいと思うとき、周囲の人たちと自分を比較する。", "4：社会的比較の結果、人よりも劣っている点だけでなく優れている点も見つかるはずだが、私たちは、劣っている点の方に意識が向かう傾向がある。", "5：良い点を伸ばしていこうと前向きな気持ちになれれば良いが、時には、分等部の方に負けて、行動が縮してしまうこともある。"], answer: "1：自意識は、人を規範的にし、また。自己批判を強めることによって、更なる努力を促すが、いつでもこうした建設的なはたらきをするわけではない。" } },
-  { id: "P16", text: `自己を特定の社会的役割や慣習。固定的アイデンティティに基づかせる伝統的社会とは異なり、私たちは、誰もが誰でもない者として自分の周囲を通り過ぎていく社会に生きている。そうした社会に生きる身体は、ファッションに身を包む。ファッションは見られることによって新しいものとして地上に再降臨する。新たに創造されたものは、新しいがゆえに、古いものから切断され、無根拠である。創造することとは、神の世界創造のごとく、無根拠である。あるいは、無意味な行為といってもよい。「新しい」とは過去から切り離されていることである。こうした新しく創造された無根拠なものを地上に普及させることが、ファッションである。ファッションを身にまとう人は、創造されたものを人の目の前に見せ、人の視線を集め、自分を人々の中へと定着させる。それは、すなわち、誕生したものを地上へと定着させること、言い換えれば、養育することである。ファッショナブルな人とは、そうした、いわば誕生と養育とを繰り返し生きる人間である。\n新たな皮膚イコール衣服を作り出すとは、新しい生き物を産みだし、育てることである。ファッションは、パーソナリティの心理学者の想像が到底、追いつかないほどに、はるかに深遠な存在論的出来事である。表面は深淵である。`, audio: `audio/p16.mp3`, n_chars_info: 537, n_chars_total: 537, quiz: { prompt: "文の主旨として、最も妥当なのはどれか", options: ["1：私たちは、誰もが誰でもない者として自分の周囲を通り過ぎていく社会に生きており，そうした社会に生きる身体は、ファッションに身を包む。", "2：ファッションは、見られることによって新しいものとして地上に再降臨する。", "3：「新しい」とは過去から切り離されていることである。", "4：ファッションを身にまとう人は、創造されたものを人の目の前に見せ、人の視線を集める。", "5：新たな皮膚イコール衣服を作り出すとは、新しい生き物を産みだし、育てることである。"], answer: "5：新たな皮膚イコール衣服を作り出すとは、新しい生き物を産みだし、育てることである。" } },
-  { id: "P17", text: `戦後の日本社会では、「豊かな家族生活」を築くことが、幸福を約束するためのガイドラインになりました。ガイドラインに沿って、「豊かな家族生活」に必要な商品をそろえることが社会で評価され、幸福を感じるための手段でした。このような幸福を常に感じていくためには、家族が経済的に豊かになり続けることが不可欠です。高度成長期には、大多数の世帯収人が増えていたので、このガイドラインが有効だったのです。\nしかし、今や経済の高成長は見込めません。少子高齢化が進み、現役世代の可処分所得は減少しています。そして、今の若者の4分の1は生涯未婚だと予測され、離婚も増えています。「豊かな家族生活」を築くことによる幸福を否定するつもりはありませんが、それだけが幸福をもたらすとすれば、多くの人はそのような幸福から排除されてしまいます。\nボランティア活動など他人や周りの人が喜ぶような新しい形の多様な幸せのモデル、つまり、他人とつながって社会的承認を得るというシステムが生まれ、育つことをサポートしていく必要があります。\n新しい形の幸福を追求するにしても、生理的欲求の充足はもとより、人からみじめとは思われない程度の生活は不可欠です。誰かにプレゼントをしたり、社会活動に参加したりするにしても、多少のお金は必要です。すべての人に文化的に最低限の生活を保障するためには、経済的な豊かさを維持しなくてはなりません。その上で、新しい形の幸福をサポートする仕組みを整えることが社会に求められていると思います。`, audio: `audio/p17.mp3`, n_chars_info: 640, n_chars_total: 640, quiz: { prompt: "文の主旨として、最も妥当なのはどれか。", options: ["1：戦後の日本社会では、豊かな家族生活を築くことが、幸福を約束するためのガイドラインになっていた。", "2： 今や経済の高成長は見込めず、少子高齢化が進み、現役世代の可処分所得は減少している。", "3：豊かな家族生活を築くことだけが幸福をもたらすとすれば、多くの人はそのような幸福から排除されてしまう。", "4：他人とつながって社会的承認を得るというシステムが生まれ、育つことをサポートしていく必要がある。", "5：すべての人に文化的に最低限の生活を保障するためには、経済的な豊かさを維持しなくてはならない。"], answer: "5：すべての人に文化的に最低限の生活を保障するためには、経済的な豊かさを維持しなくてはならない。" } },
-  { id: "P18", text: `不安な状態は決して悪いものではない。だからといって、あまりに不安ばかりが肥大しすぎるのは決してよいことではないのも事実である。慎重になりすぎるあまり．迷いが生じて決断力が鈍り、行動に移せなくなってしまうのだ。だから、不安と自信のバランスをうまく保つことが大切になる。\nだいたい、不安というものは打ち消そうとしてもそう簡単に打ち消せるものではない。仮にひとつ解消できたとしても、すぐにまた別の不安が襲ってくる。そうであるならば、不安を解消しようとするのではなく、うまく付き合っていく方法を考えたほうが建設的であろう。そして、不安とうまく付き合うことは、誰にでもできる。\n人間というものは、不安や自信といった相反するものをつねに自分の中に抱えながら、その葛藤のなかで成長していくものではないだろうか。磁石にN極とS極があるように、個人、そしておそらく組織も、相反するもの、いわば「矛盾」を抱えながら進化していくのだ。ひとつ問題を解決しても、解決したことによって別の問題が持ち上がる。不要だと思えるものをすべてなくしたからといって、必ずしもうまくいくとは限らない。これらはすべて矛盾といっていい。つまり、人間と、人間によって構成される組織は、単純に割り切れるものではないということだ。そうした矛盾を、むしろ潤滑油としてうまく利用したほうが、よい成果が得られると思う。\nそこで大切になるのは、不安やコンプレックスといった「負」の要素を自覚し、そのまま受け入れたうえで、それを「マイナス」とは考えずに、「プラス」に転化していくことである。それが私のいう。「うまい付き合い方」なのだ。そのために重要なのが、「視点を切り換えること」。別の言い方をすれば「物事の捉え方」である。`, audio: `audio/p18.mp3`, n_chars_info: 759, n_chars_total: 759, quiz: { prompt: "文の主旨として、最も妥当なのはどれか", options: ["1：不安な状態は決して悪いものではないが、あまりに不安ばかりが肥大しすぎるのは決してよいことではない。", "2：不安を解消しようとするのではなく、うまく付き合っていく方法を考えた方が建設的であり、不安とうまく付き合うことは、誰にでもできる。", "3：ひとつ問題を解決しても、解決したことによって別の問題が持ち上がり、不要だと思えるものを全てなくしても、必ずしもうまくいくとは限らない。", "4：人間と、人間によって構成される組織は、単純に割り切れるものではなく、矛盾を潤滑油としてうまく利用した方が、よい成果が得られる。", "5：大切なのは、不安やコンプレックスといった負の要素を自覚し、そのまま受け入れることである。"], answer: "4：人間と、人間によって構成される組織は、単純に割り切れるものではなく、矛盾を潤滑油としてうまく利用した方が、よい成果が得られる。" } },
-  { id: "P19", text: `歯磨き粉のコマーシャルだったと思うんですが、「歯がしみる人に」みたいな言葉を聞いて、「へー、歯がしみるって言うんだなあ」って思ったのをよく覚えています。これは、比較的新しい用法でしょう。本来の用法は、「冷たいものが歯にしみる」だったと思うんです。「しみる」というのは、液体や気体が少しずつある部分に入り込んでいく、みたいな意味ですよね。あるものがある様態で移動する事態を表わしています。なので、そういう動詞の常として、移動するものが主語になっているわけです。ところが、「歯がしみる」とか「目がしみる」では、身体部分の方が主語になってしまっている。「歯がしみる」は「歯が痛い」の一種と言えるわけですが、単なる「痛い」とどう違うのかを考えると、「歯がしみる」はその履歴を語っていることになる。「歯がしみる」と言えば、何かが歯にしみた結果その痛みが生じたのだということがわかります。つまり、本来は「何かが歯にしみてその結果として歯が痛くなった」という事態なのですが、そこで何がしみたかはさほど重要ではなくて、その結果として歯がどうなったのかということだけに焦点を当てると、「歯がしみる」という言い方になる。`, audio: `audio/p19.mp3`, n_chars_info: 501, n_chars_total: 501, quiz: { prompt: "文の要旨として、もっとも妥当なのはどれか", options: ["1：「歯がしみる」という表現は結果としての痛さ自体については伝わりにくいが、単に「歯が痛い」を言うよりも歯痛に至る履歴をはっきり伝えられる言い方である。", "2：「歯がしみる」と言う場合、歯の痛みが生じるまでの履歴は言わずに、単に結果として「歯が痛い」という事実にだけ焦点を当てている。", "3：「歯がしみる」という表現は、実際に何かが歯にしみていなくても、結果として何かがしみたときと同じような痛みが歯に生じていれば用いられる言い方である。", "4：「歯がしみる」という場合、その歯痛で起きている事態を構成する要素のうち、原因の物質は問わずに、痛みが生じるまでの履歴を表現している。", "5：「歯がしみる」と言うと、歯痛の原因の物質に焦点が当たらないため、歯痛で起きている服歴を構成する要器を偏りなく捉えるには物戻りない言い方になる。"], answer: "2：「歯がしみる」と言う場合、歯の痛みが生じるまでの履歴は言わずに、単に結果として「歯が痛い」という事実にだけ焦点を当てている。" } },
-  { id: "P20", text: `美は主体とからまることがほとんど絶対にない。ナルシシズムは自己を客体とした二重操作による美の把握であって、それも自己が客体となることには変りがない。ところで行動とはあくまで主体的なものである。行動とは、自分のうちの力が一をの軌跡を描いて目的へ突進する姿であるから、それはあたかも疾走する鹿がいかに美しくても、鹿自体には何ら美が感じられないのと同じである。およそ美しいものには自分の美しさを感じる暇がないというのがほんとうのところであろう。自分の美しさが決して感じられない状況においてだけ。美がその本来の純粋な形をとるとも言える。だからプラトンは「美はすばやい、早いものほど美しい」と言うのである。そしてまたゲーテがファウストの中で「美しいものよ、しばしとどまれ」と言ったように、瞬間に現象するものにしか美がないということが言える。そしてその美を、その瞬間にして消え去る美を永久に残る容体として、それ自体一つのフィクションとして、この世にあり得ないものとして現実から隔離してつくり上げたものが造形美術なのである。\nでは行動の美というのはどんなものであろうか。行動の美ということ自体矛盾であるのはいま述べたとおりである。そして本来男は自分が客体であることをなかなか容認しないものであるから、男が美しくなるときとは彼自身がその美に全く気がついていないときでなければならない。その行動のさなかで美が一瞬にして消える姿は、あたかも電流が自分のからだを突き抜けて去ったように、彼自身には気づかれないのが普通である。しかし美の不思議は、もしそれを見ていた第三者がいたとすれば、その第三者の目にはありありと忘れ難い映像を残すということである。`, audio: `audio/p20.mp3`, n_chars_info: 715, n_chars_total: 715, quiz: { prompt: "文の主旨として、最も妥当なのはどれか。", options: ["1：行動の美というものは本質的に矛盾を含んだものであるので、行動の美があるとすればそれは現実から隔離して作り上げられた造形美術の中にしかない。", "2：行動の美は、主体がそれと気づかぬうちに第三者の意識の中に突然生じるものであるので、主体そのものが持つ美とは本来関係ないものである。", "3：行動の美は、行動の主体が自らを美しいと感じていないことを条件に生じるものであるので、主体が自らの美を意識することで美は消え去ってしまう。", "4：行動の美は一瞬のうちに生じたの瞬間には消え去ってしまうものであるので、これを美としてとらえることは一般に極めて難しい。", "5：行動の美は、主体が目的に向かって突き進むつかの間に生じるものであるが、見る者のみに忘れ難い印象を刻みこむ。"], answer: "5：行動の美は、主体が目的に向かって突き進むつかの間に生じるものであるが、見る者のみに忘れ難い印象を刻みこむ。" } }
 ];
 
 /* =========================================================
@@ -488,13 +473,13 @@ function initializeTrialOrder(id) {
     // 2. 条件順序の作成 (4サイクル)
     let conditionOrder = [];
     const conditionsOther = [1, 2, 3, 4]; // S2, S3, S4, S5 indices
-    
-    for(let c = 0; c < 4; c++) { // 4 cycles
+     
+    for(let c = 0; c < 3; c++) { // 3 cycles
         conditionOrder.push(0); // 先頭はS1
         let block = shuffle([...conditionsOther]); // S2-S5をシャッフル
         conditionOrder.push(...block);
     }
-    
+     
     // 3. 結合
     for (let i = 0; i < TOTAL_TRIALS; i++) {
         order.push({
@@ -506,10 +491,11 @@ function initializeTrialOrder(id) {
 }
 
 function setupTrial(){
-  clearTimer();
   passageBox.textContent = "";
   quizWrap.style.display = "none";
-  hideProgressBar();
+  
+  finishReadBtn.style.display = "none"; // ボタン非表示
+  passageContainer.style.display = "";
 
   if(currentTotalIndex >= TOTAL_TRIALS){
     bigStartBtn.style.display = "none";
@@ -519,22 +505,22 @@ function setupTrial(){
     trialLabel.textContent = "";
     return;
   }
-  
+   
   const assignment = currentTrialOrder[currentTotalIndex]; 
-  
+   
   if (!assignment) {
     setStatus("準備中...");
     return;
   }
-  
+   
   const sec = SECTIONS[assignment.secIdx];
   const passage = PASSAGES[assignment.pasIdx];
 
   currentSection = sec;
   currentPassage = passage;
 
-  secLabel.textContent   = sec.label;
-  trialLabel.textContent = `第${currentTotalIndex + 1}問 / 全20問`;
+  secLabel.textContent    = sec.label;
+  trialLabel.textContent = `第${currentTotalIndex + 1}問 / 全15問`;
 
   bigStartBtn.disabled = false;
   bigStartBtn.style.display = "inline-block";
@@ -589,7 +575,20 @@ function renderQuiz(){
         optsDiv.appendChild(line);
       });
       div.appendChild(optsDiv);
-    } 
+    } else if (q.type === "text") {
+      // 自由記述エリアの作成
+      const textArea = document.createElement("textarea");
+      textArea.name = name;
+      textArea.placeholder = q.placeholder || "";
+      textArea.style.width = "100%";
+      textArea.style.height = "60px";
+      textArea.style.marginTop = "10px";
+      textArea.style.padding = "10px";
+      textArea.style.borderRadius = "8px";
+      textArea.style.border = "1px solid #ccc";
+      textArea.style.fontFamily = "inherit";
+      div.appendChild(textArea);
+    }
     quizForm.appendChild(div);
   });
 
@@ -617,7 +616,7 @@ function validateQuiz(){
 function collectAnswers(){
   const sec = currentSection;
   const passage = currentPassage;
-  
+   
   const row = {
     participant_id: participantId, 
     section_id: sec.id,
@@ -629,37 +628,82 @@ function collectAnswers(){
     t_quiz_ms: Date.now() - quizStartTime,
     Iread_per_sec: Iread
   };
-  
+   
   const formElements = quizForm.elements;
   BASE_QUESTIONS.forEach(q => {
     const name = `${sec.id}_${passage.id}_${q.key}`;
     const element = formElements[name]; 
 
     if (element) {
-      if (element.length > 0 && element[0].type === 'radio') {
+      // ラジオボタンの処理
+      if (element instanceof RadioNodeList || (element.length > 0 && element[0].type === 'radio')) {
         let val = "UNANSWERED";
+        let score = ""; // ★スコア用変数
+
         for (let i = 0; i < element.length; i++) {
-          if (element[i].checked) { val = element[i].value; break; }
+          if (element[i].checked) { 
+            val = element[i].value; 
+            score = i + 1; // ★インデックス(0〜4)に+1して、1〜5点のスコアにする
+            break; 
+          }
         }
         row[q.key] = val;
+        
+        // ★選択式(mc)の場合はスコアもデータに追加
+        if(q.type === "mc") {
+            row[`${q.key}_score`] = score;
+        }
+
+      } else if (element.tagName === "TEXTAREA") {
+        // テキストエリアの処理
+        row[q.key] = element.value;
       }
     } else {
       row[q.key] = "NOT_APPLICABLE"; 
+      if(q.type === "mc") row[`${q.key}_score`] = ""; // 対象外なら空欄
     }
   });
 
   if (passage.quiz) {
       row['topic_correct_answer'] = passage.quiz.answer;
-      // スコア計算
       if (row['topic'] === passage.quiz.answer) {
           row['score'] = 1;
       } else {
           row['score'] = 0;
       }
   }
-  
+   
   sendDataToSheet(row);
   answers.push(row);
+}
+
+// 読み終わり処理 (黙読終了時、またはボタンクリック時に呼ばれる)
+function finishReadingPhase() {
+  const sec = currentSection;
+  const passage = currentPassage;
+
+  // UIクリーンアップ
+  passageBox.textContent = "";
+  
+  finishReadBtn.style.display = "none";
+  passageContainer.style.display = "none";
+  
+  if (sec.mode === "silent") {
+    // 黙読のみ -> クイズへ
+    renderQuiz();
+  } else if (sec.mode.startsWith("text_then")) {
+    // 文章→音声 -> 音声再生へ
+    let rate = 1.0;
+    if(sec.mode === "text_then_audio_read"){
+        rate = Iread / Ibase;
+        if(!isFinite(rate)) rate = 1.0;
+    }
+    prepareAudio(passage.audio, rate);
+    setStatus("音声再生中...");
+    aud.onended = () => { renderQuiz(); };
+    aud.currentTime = 0;
+    aud.play();
+  }
 }
 
 /* =========================================================
@@ -671,7 +715,7 @@ bigStartBtn.addEventListener("click", () => {
   if(!currentSection || !currentPassage) return; 
 
   bigStartBtn.disabled = true;
-  clearTimer();
+ 
   aud.onended = null; aud.pause();
 
   const sec = currentSection;
@@ -679,52 +723,51 @@ bigStartBtn.addEventListener("click", () => {
   const readSec = estimateReadingTimeSec(passage.text);
 
   if(sec.mode === "silent"){
+    // [黙読モード]
     passageBox.textContent = passage.text;
     setStatus("黙読中...");
-    startProgressBar(readSec);
+    
+    finishReadBtn.style.display = "inline-block"; // ボタン表示
     phase = "running";
     
-    activeTimer = setTimeout(() => {
-      passageBox.textContent = "";
-      hideProgressBar();
-      renderQuiz();
-    }, readSec * 1000);
+    // タイマー設定 (時間切れでも自動で進む)
+   
 
   } else if(sec.mode.startsWith("audio")){
+    // [音声のみ、または音声＋文章モード]
     let rate = 1.0;
     if(sec.mode === "audio_text_read") {
         rate = Iread / Ibase; 
         if(!isFinite(rate)) rate = 1.0;
+
     }
     prepareAudio(passage.audio, rate);
     passageBox.textContent = passage.text;
     phase = "running";
     setStatus("再生中...");
-    aud.onended = () => { passageBox.textContent = ""; renderQuiz(); };
+    aud.onended = () => { 
+        passageBox.textContent = ""; 
+        passageContainer.style.display = "none"; // ←ここを追加
+        renderQuiz(); 
+    };
     aud.currentTime = 0; 
     aud.play().catch(e=>{ alert("自動再生エラー: 再生ボタンを押してください"); bigStartBtn.disabled=false; });
 
   } else if(sec.mode.startsWith("text_then")){
+    // [文章→音声モード]
     passageBox.textContent = passage.text;
-    let rate = 1.0;
-    if(sec.mode === "text_then_audio_read"){
-        rate = Iread / Ibase;
-        if(!isFinite(rate)) rate = 1.0;
-    }
     setStatus(`黙読中...`);
-    startProgressBar(readSec);
+    finishReadBtn.style.display = "inline-block"; // ボタン表示
     phase = "running";
     
-    activeTimer = setTimeout(() => {
-      passageBox.textContent = "";
-      hideProgressBar();
-      prepareAudio(passage.audio, rate);
-      setStatus("音声再生中...");
-      aud.onended = () => { renderQuiz(); };
-      aud.currentTime = 0;
-      aud.play();
-    }, readSec * 1000);
+    // タイマー設定
   }
+});
+
+// 新規追加: 読み終わったボタンの動作
+finishReadBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    finishReadingPhase(); // 即座に次へ
 });
 
 submitQuiz.addEventListener("click", (e) => {
@@ -734,7 +777,7 @@ submitQuiz.addEventListener("click", (e) => {
 
   collectAnswers();
   quizWrap.style.display = "none";
-  
+   
   currentTotalIndex++;
   setupTrial();
 });
@@ -751,7 +794,7 @@ submitIdBtn.addEventListener('click', () => {
     idInputArea.style.display = 'none';
     noticeArea.style.display = 'block';
     experimentArea.style.display = 'block';
-    
+     
     initializeTrialOrder(participantId);
     setStatus(`ID:${participantId} 準備完了`);
     setupTrial();
